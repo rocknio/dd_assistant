@@ -16,6 +16,8 @@ enum workType {work, rest}
 enum dayType {work, rest, holiday, unknown}
 
 void main() {
+	WidgetsFlutterBinding.ensureInitialized();
+
 	// 强制竖屏
 	SystemChrome.setPreferredOrientations([
 		DeviceOrientation.portraitUp,
@@ -57,14 +59,14 @@ class MyHomePage extends StatefulWidget {
   _MyHomePageState createState() => _MyHomePageState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
+class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
 	Application dingdingApp;
 	MemoryImage dingdingIcon;
-	bool editAble = false;
+	bool editAble = true;
 	DateTime workTime, restTime;
 	Timer _loopTimer;
 	final String dingdingPackageName = "com.alibaba.android.rimet";
-	final String selfPackageName = "com.example.dingding_assistant";
+	final String selfPackageName = "com.example.ddassistant";
 	SharedPreferences prefs;
 	Application selfApp;
 	TodayType todayType;
@@ -116,6 +118,9 @@ class _MyHomePageState extends State<MyHomePage> {
 	  _setKeepScreenOn();
 
 	  initSharedPreferences();
+
+	  WidgetsBinding.instance.addObserver(this);
+
     super.initState();
   }
 
@@ -123,14 +128,39 @@ class _MyHomePageState extends State<MyHomePage> {
   void dispose() {
 	  cancelLoopTimer();
 
+	  WidgetsBinding.instance.removeObserver(this);
+
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    print("didChangeAppLifecycleState = $state");
+
+    switch (state) {
+	    case AppLifecycleState.inactive:
+	    	cancelLoopTimer();
+	    	break;
+      case AppLifecycleState.resumed:
+      	cancelLoopTimer();
+      	startAssistantLoop();
+        break;
+      case AppLifecycleState.paused:
+        break;
+      case AppLifecycleState.detached:
+        break;
+    }
+
+    super.didChangeAppLifecycleState(state);
   }
 
 	void cancelLoopTimer() {
 		if (_loopTimer != null && _loopTimer.isActive) {
 			_loopTimer.cancel();
 			_loopTimer = null;
-			isRunning = false;
+			setState(() {
+				isRunning = false;
+			});
 		}
 	}
 
@@ -265,8 +295,6 @@ class _MyHomePageState extends State<MyHomePage> {
 		currentMinute = DateTime.now().minute;
 		currentSecond = DateTime.now().second;
 
-		print("Current Time: $currentHour:$currentMinute:$currentSecond");
-
 		if (currentHour == workTime.hour && currentMinute == workTime.minute) {
 			// 上班
 			calcDelay();
@@ -398,7 +426,11 @@ class _MyHomePageState extends State<MyHomePage> {
 		  floatingActionButton: FloatingActionButton(
 			  backgroundColor: isRunning ? Colors.green : Colors.red,
 			  onPressed: () async {
-			  	startAssistantLoop();
+			  	if (isRunning == false) {
+					  startAssistantLoop();
+				  } else {
+			  		cancelLoopTimer();
+				  }
 			  },
 			  child: Icon(Icons.send, color: Colors.white,),
 		  ),
