@@ -14,6 +14,7 @@ import 'package:wakelock/wakelock.dart';
 
 enum workType {work, rest}
 enum dayType {work, rest, holiday, unknown}
+enum workingStatus {idle, waitForLaunch, processing}
 
 void main() {
 	WidgetsFlutterBinding.ensureInitialized();
@@ -70,7 +71,7 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
 	SharedPreferences prefs;
 	Application selfApp;
 	TodayType todayType;
-	bool isRunning = false;
+	workingStatus status = workingStatus.idle;
 
 	void _getSelfApp() async {
 		if (selfApp == null) {
@@ -159,7 +160,7 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
 			_loopTimer.cancel();
 			_loopTimer = null;
 			setState(() {
-				isRunning = false;
+				status = workingStatus.idle;
 			});
 		}
 	}
@@ -184,7 +185,7 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
 	  }
 
   	setState(() {
-  	  isRunning = true;
+  	  status = workingStatus.processing;
   	});
 
 		_loopTimer = Timer.periodic(Duration(seconds: 30), (_) {
@@ -238,6 +239,7 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
 			align: Alignment.bottomCenter
 		);
 
+		status = workingStatus.waitForLaunch;
 		Timer(Duration(minutes: delta), () {
 			openDingding();
 		});
@@ -382,6 +384,30 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
 		  ),
 	  );
 
+  	Widget getFloatingButtonWidget() {
+  		switch (status) {
+			  case workingStatus.idle:
+			  	return Icon(Icons.send, color: Colors.white,);
+			  case workingStatus.waitForLaunch:
+				  return ClipOval(
+						  child: Image.asset("assets/images/loading.gif",fit: BoxFit.cover,width: 240,height: 240,)
+				  );
+			  case workingStatus.processing:
+			  default:
+			    return Icon(Icons.stop, color: Colors.white,);
+		  }
+	  }
+
+	  Color getFloatingButtonBackgroundColor() {
+  		switch (status) {
+			  case workingStatus.processing:
+			  	return Colors.red;
+		    case workingStatus.idle:
+			  default:
+		      return Colors.green;
+		  }
+	  }
+
   	return Scaffold(
 		  appBar: AppBar(
 			  title: Text(widget.title),
@@ -424,15 +450,16 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
 			  ],
 		  ),
 		  floatingActionButton: FloatingActionButton(
-			  backgroundColor: isRunning ? Colors.green : Colors.red,
+				backgroundColor: getFloatingButtonBackgroundColor(),
 			  onPressed: () async {
-			  	if (isRunning == false) {
+			  	if (status == workingStatus.idle) {
 					  startAssistantLoop();
 				  } else {
 			  		cancelLoopTimer();
 				  }
 			  },
-			  child: Icon(Icons.send, color: Colors.white,),
+//			  child: Icon(Icons.send, color: Colors.white,),
+		    child: getFloatingButtonWidget()
 		  ),
 	  );
   }
