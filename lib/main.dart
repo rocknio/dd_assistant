@@ -292,10 +292,9 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
 
 		cancelLoopTimer();
 
-		int currentHour, currentMinute, currentSecond;
+		int currentHour, currentMinute;
 		currentHour = DateTime.now().hour;
 		currentMinute = DateTime.now().minute;
-		currentSecond = DateTime.now().second;
 
 		if (currentHour == workTime.hour && currentMinute == workTime.minute) {
 			// 上班
